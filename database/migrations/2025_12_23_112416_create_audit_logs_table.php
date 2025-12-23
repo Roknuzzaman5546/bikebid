@@ -10,15 +10,14 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('bids', function (Blueprint $table) {
+        Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('auction_id')->constrained();
-            $table->foreignId('user_id')->constrained();
-            $table->decimal('amount', 10, 2);
-            $table->string('idempotency_key')->unique();
+            $table->string('action');
+            $table->foreignId('user_id')->nullable();
+            $table->foreignId('auction_id')->nullable();
+            $table->text('details')->nullable();
             $table->timestamps();
         });
-
     }
 
     /**
@@ -26,6 +25,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('bids');
+        Schema::dropIfExists('audit_logs');
     }
 };
