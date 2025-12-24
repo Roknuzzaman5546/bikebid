@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Auction;
 use Illuminate\Console\Command;
 
 class UpdateAuctionState extends Command
@@ -18,13 +19,17 @@ class UpdateAuctionState extends Command
      *
      * @var string
      */
-    protected $description = 'Command description';
+    protected $description = 'Move auctions from Scheduled to Live';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        //
+        Auction::where('status', 'scheduled')
+            ->where('start_time', '<=', now())
+            ->update(['status' => 'live']);
+
+        $this->info('Auction states updated');
     }
 }
