@@ -43,12 +43,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->name('bids.store');
 
     // Buy Now
-    Route::post('/auctions/{auction}/buy-now', [BuyNowController::class, 'store'])
+    Route::post('/auctions/{auction}/buy-now', [BuyNowController::class, 'buy'])
         ->name('buy.now');
 
     // Watchlist
-    Route::post('/watch/{auction}', [WatchlistController::class, 'store']);
-    Route::delete('/watch/{auction}', [WatchlistController::class, 'destroy']);
+    Route::post('/watch/{auctionId}', [WatchlistController::class, 'toggle']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

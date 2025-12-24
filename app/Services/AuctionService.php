@@ -40,6 +40,9 @@ class AuctionService
     /**
      * Place Bid (Concurrency Safe)
      */
+    /**
+     * Place Bid (Concurrency Safe)
+     */
     public function placeBid(int $auctionId, int $userId, float $amount)
     {
         return DB::transaction(function () use ($auctionId, $userId, $amount) {
@@ -53,7 +56,9 @@ class AuctionService
                 return ['error' => 'Auction not live'];
             }
 
-            if (now()->gt($auction->end_time)) {
+            $endTime = \Carbon\Carbon::parse($auction->end_time);
+
+            if (now()->gt($endTime)) {
                 return ['error' => 'Auction already ended'];
             }
 
@@ -61,7 +66,13 @@ class AuctionService
                 return ['error' => 'Self bidding not allowed'];
             }
 
-            $minBid = $auction->current_price + $auction->min_increment;
+            // Determine minimum bid
+            if (!is_null($auction->current_price)) {
+                $minBid = $auction->current_price + $auction->min_increment;
+            } else {
+                $minBid = $auction->starting_price;
+            }
+
 
             if ($amount < $minBid) {
                 return ['error' => "Minimum bid is {$minBid}"];
@@ -71,17 +82,20 @@ class AuctionService
                 'auction_id' => $auctionId,
                 'user_id' => $userId,
                 'amount' => $amount,
+                'idempotency_key' => request('key'),
                 'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             DB::table('auctions')
                 ->where('id', $auctionId)
                 ->update([
-                    'current_price' => $amount
+                    'current_price' => $amount,
+                    'updated_at' => now(),
                 ]);
 
             // Anti-sniping (last 2 minutes)
-            if (now()->diffInSeconds($auction->end_time) <= 120) {
+            if (now()->diffInSeconds($endTime) <= 120) {
                 $newEnd = now()->addMinutes(2);
 
                 DB::table('auctions')
@@ -124,9 +138,8 @@ class AuctionService
                 ->update([
                     'state' => 'ended',
                     'winner_id' => $userId,
-                    //  'final_price' => $auction->buy_now_price, // Assuming final_price exists or current_price is used
                     'current_price' => $auction->buy_now_price,
-                    //  'ended_at' => now(), // Assuming ended_at column exists
+                    'updated_at' => now(),
                 ]);
 
             event(new AuctionEnded(
@@ -145,23 +158,18 @@ class AuctionService
     /**
      * Close Auction (Cron / Command)
      */
-    public function closeAuction(int $auctionId)
+    public function closeAuction(Auction $auction)
     {
-        return DB::transaction(function () use ($auctionId) {
+        return DB::transaction(function () use ($auction) {
 
-            $auction = DB::table('auctions')
-                ->lockForUpdate()
-                ->where('id', $auctionId)
-                ->first();
+            // Reload to get lock
+            $auction = Auction::lockForUpdate()->find($auction->id);
 
             if (!$auction || $auction->state !== 'live') {
                 return;
             }
 
-            $bid = DB::table('bids')
-                ->where('auction_id', $auctionId)
-                ->orderByDesc('amount')
-                ->first();
+            $bid = $auction->bids()->orderByDesc('amount')->first();
 
             $sold = false;
             $winnerId = null;
@@ -175,23 +183,19 @@ class AuctionService
                 }
             }
 
-            DB::table('auctions')
-                ->where('id', $auctionId)
-                ->update([
-                    'state' => 'ended',
-                    'winner_id' => $winnerId,
-                    // 'final_price' => $price,
-                    // 'ended_at' => now(),
-                ]);
+            $auction->update([
+                'state' => 'ended',
+                'winner_id' => $winnerId,
+            ]);
 
             event(new AuctionEnded(
-                $auctionId,
+                $auction->id,
                 $winnerId,
                 $price,
                 $sold
             ));
 
-            $this->audit('AUCTION_ENDED', $auctionId, $winnerId, $price);
+            $this->audit('AUCTION_ENDED', $auction->id, $winnerId, $price);
         });
     }
 

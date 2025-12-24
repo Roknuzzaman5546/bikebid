@@ -12,66 +12,38 @@ use Illuminate\Support\Facades\DB;
 
 class BidController extends Controller
 {
+    protected $auctionService;
+
+    public function __construct(\App\Services\AuctionService $auctionService)
+    {
+        $this->auctionService = $auctionService;
+    }
+
     public function store(Request $request, Auction $auction)
     {
         $request->validate([
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:0.01',
             'key' => 'required|string'
         ]);
 
         $user = auth()->user();
 
+
         try {
-            DB::transaction(function () use ($auction, $request, $user) {
+            // Idempotency check
+            if (Bid::where('idempotency_key', $request->key)->exists()) {
+                return back()->with('success', 'Bid placed');
+            }
 
-                $auction = Auction::where('id', $auction->id)
-                    ->lockForUpdate()
-                    ->first();
+            if ($user->status !== 'active') {
+                throw new \Exception('Checking status: USER_SUSPENDED');
+            }
 
-                if ($auction->state !== 'live') {
-                    throw new \Exception('AUCTION_NOT_LIVE');
-                }
+            $result = $this->auctionService->placeBid($auction->id, $user->id, $request->amount);
 
-                if ($user->status !== 'active') {
-                    throw new \Exception('USER_SUSPENDED');
-                }
-
-                if ($auction->seller_id === $user->id) {
-                    throw new \Exception('SELF_BIDDING');
-                }
-
-                if (Bid::where('idempotency_key', $request->key)->exists()) {
-                    return;
-                }
-
-                $minBid = max(
-                    $auction->current_price ?: $auction->starting_price,
-                    $auction->current_price
-                ) + $auction->min_increment;
-
-                if ($request->amount < $minBid) {
-                    throw new \Exception('MIN_INCREMENT_NOT_MET');
-                }
-
-                Bid::create([
-                    'auction_id' => $auction->id,
-                    'user_id' => $user->id,
-                    'amount' => $request->amount,
-                    'idempotency_key' => $request->key
-                ]);
-
-                $auction->current_price = $request->amount;
-
-                // Anti-sniping
-                if ($auction->end_time->diffInSeconds(now()) <= 120) {
-                    $auction->end_time = $auction->end_time->addMinutes(2);
-                    event(new AuctionExtended($auction));
-                }
-
-                $auction->save();
-
-                event(new BidPlaced($auction, $user));
-            });
+            if (isset($result['error'])) {
+                throw new \Exception($result['error']);
+            }
 
             return back()->with('success', 'Bid placed');
 

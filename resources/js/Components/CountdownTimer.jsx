@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 export default function CountdownTimer({ endTime }) {
     const [time, setTime] = useState("");
-
+    console.log(endTime);
     useEffect(() => {
         const i = setInterval(() => {
             const diff = new Date(endTime) - new Date();

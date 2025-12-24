@@ -1,9 +1,16 @@
 import BidBox from "@/Components/BidBox";
 import CountdownTimer from "@/Components/CountdownTimer";
-import { usePage } from "@inertiajs/react";
+import { usePage, useForm } from "@inertiajs/react";
 
 export default function Show() {
     const { auction } = usePage().props;
+
+    const { post } = useForm();
+
+    function buyNow(e) {
+        e.preventDefault();
+        post(`/auctions/${auction.id}/buy-now`);
+    }
 
     return (
         <div className="p-6 max-w-3xl mx-auto">
@@ -23,7 +30,7 @@ export default function Show() {
             <BidBox auction={auction} />
 
             {auction.buy_now_price && (
-                <form method="post" action={`/auctions/${auction.id}/buy`}>
+                <form onSubmit={buyNow}>
                     <button className="mt-4 bg-green-600 text-white px-4 py-2 rounded">
                         Buy Now ৳{auction.buy_now_price}
                     </button>
