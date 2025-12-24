@@ -53,16 +53,18 @@ class AuctionService
                 ->first();
 
             if (!$auction || $auction->state !== 'live') {
-                return ['error' => 'Auction not live'];
+                throw new \Exception('Auction not live');
             }
 
             $endTime = \Carbon\Carbon::parse($auction->end_time);
 
+
+
             if (now()->gt($endTime)) {
                 return ['error' => 'Auction already ended'];
             }
-
             if ($auction->seller_id == $userId) {
+                dd($auction->id);
                 return ['error' => 'Self bidding not allowed'];
             }
 
@@ -78,6 +80,7 @@ class AuctionService
                 return ['error' => "Minimum bid is {$minBid}"];
             }
 
+            // dd($amount, $minBid);
             DB::table('bids')->insert([
                 'auction_id' => $auctionId,
                 'user_id' => $userId,
