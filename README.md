@@ -1,59 +1,110 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# BikeBid - Online Bike Auction Marketplace
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+BikeBid is a high-performance, real-time online bike auction platform. Built with Laravel 12, Inertia.js, and React, it features a premium "Glassmorphism" dark-themed UI and robust backend logic to handle high-concurrency bidding environments.
 
-## About Laravel
+## 🚀 Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Real-time Bidding**: Instant price updates and bid history without page refreshes using Laravel Reverb (WebSockets).
+- **Anti-Sniping Logic**: Auctions are automatically extended by 2 minutes if a bid is placed in the final 2 minutes of the auction, ensuring fair play.
+- **Concurrency Protection**: Uses database transactions and pessimistic locking (`lockForUpdate`) to prevent double-bidding and race conditions.
+- **Buy Now**: Instant purchase option for eligible auctions.
+- **Notifications**: Real-time notifications for being outbid or winning an auction.
+- **Premium UI**: Modern dark mode design with sleek animations and responsive layout.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🛠️ Environment Setup
 
-## Learning Laravel
+### Prerequisites
+- **PHP**: ^8.2
+- **Node.js**: ^18.x / ^20.x
+- **Composer**: ^2.x
+- **Database**: SQLite (default), MySQL, or PostgreSQL
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### Installation Steps
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd bikebid
+   ```
 
-## Laravel Sponsors
+2. **Setup Environment File**:
+   ```bash
+   cp .env.example .env
+   ```
+   *Configure your database and Reverb settings in `.env` if necessary.*
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. **Run Automatic Setup**:
+   This command installs dependencies, generates the application key, runs migrations, and builds assets.
+   ```bash
+   composer setup
+   ```
 
-### Premium Partners
+4. **Start the Development Environment**:
+   The project includes a combined command to run the server, queue, Reverb, and Vite concurrently:
+   ```bash
+   composer dev
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## 🏃 How to Run
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Manual Services (Optional)
+If you prefer running services individually:
 
-## Code of Conduct
+- **Web Server**: `php artisan serve`
+- **Asset Compiler**: `npm run dev`
+- **Reverb (WebSockets)**: `php artisan reverb:start`
+- **Queue Worker**: `php artisan queue:listen`
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Seed Sample Data
+To populate the database with a rich set of sample data (auctions, bids, and users):
+```bash
+php artisan db:seed
+```
 
-## Security Vulnerabilities
+**Available Test Accounts (Password: `password`):**
+- **Admin**: `admin@bikebid.com`
+- **Seller**: `seller@bikebid.com`
+- **Buyer**: `buyer@bikebid.com`
+- **Generic User**: `test@example.com`
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 🧪 Running Tests
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The project includes a suite of feature tests covering the core auction logic, including concurrency and anti-sniping.
+
+Run all tests:
+```bash
+php artisan test
+```
+
+Specific test file:
+```bash
+php artisan test tests/Feature/AuctionSystemTest.php
+```
+
+---
+
+## 🧠 Key Decisions & Assumptions
+
+1. **Tech Stack Choice**:
+   - **Laravel 12 + Reverb**: Selected for first-party WebSocket support, making real-time features lightweight and easy to deploy without external dependencies like Pusher.
+   - **Inertia.js + React**: Provides a SPA-like experience (fast transitions) while keeping the powerful Laravel routing and controller logic.
+
+2. **Concurrency Management**:
+   - Every bid placement is wrapped in a **DB Transaction**.
+   - We use **Pessimistic Locking** (`lockForUpdate`) on the auction record during the bid process. This ensures that only one bid is processed at a time for a specific auction, preventing price discrepancies.
+
+3. **Anti-Sniping (Auction Extension)**:
+   - **Assumption**: A 2-minute "buffer" is sufficient. 
+   - **Logic**: If a bid is placed when `end_time` is less than 2 minutes away, the `end_time` is extended by exactly 2 minutes from its current value.
+
+4. **Audit Logs**:
+   - Every major action (Bid, Cancel, Extension, Buy Now) is recorded in an `audit_logs` table for administrative transparency and debugging.
+
+5. **State Management**:
+   - Auction states are strictly defined: `draft`, `scheduled`, `live`, `ended`, `canceled`. Transitions are managed via a service layer (`AuctionService`) to ensure consistency.
