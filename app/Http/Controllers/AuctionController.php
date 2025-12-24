@@ -128,4 +128,19 @@ class AuctionController extends Controller
 
         return back()->with('success', 'Auction canceled');
     }
+
+    /**
+     * Get auction updates (for polling)
+     */
+    public function updates(Auction $auction)
+    {
+        return response()->json([
+            'current_price' => $auction->current_price,
+            'end_time' => $auction->end_time,
+            'state' => $auction->state,
+            'winner_id' => $auction->winner_id,
+            'buy_now_price' => $auction->buy_now_price,
+            'last_bid_at' => $auction->updated_at, // Use updated_at as proxy for last activity
+        ]);
+    }
 }

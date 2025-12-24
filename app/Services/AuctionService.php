@@ -64,7 +64,6 @@ class AuctionService
                 return ['error' => 'Auction already ended'];
             }
             if ($auction->seller_id == $userId) {
-                dd($auction->id);
                 return ['error' => 'Self bidding not allowed'];
             }
 
@@ -189,6 +188,7 @@ class AuctionService
             $auction->update([
                 'state' => 'ended',
                 'winner_id' => $winnerId,
+                'buy_now_price' => $price, // Set buy now price to winning bid for checkout
             ]);
 
             event(new AuctionEnded(

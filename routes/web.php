@@ -31,6 +31,7 @@ Route::get('/', [AuctionController::class, 'index'])->name('home');
 Route::get('/auctions', [AuctionController::class, 'index'])->name('auctions.index');
 Route::get('/auctions/create', [AuctionController::class, 'create'])->name('auctions.create');
 Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->name('auctions.show');
+Route::get('/auctions/{auction}/updates', [AuctionController::class, 'updates'])->name('auctions.updates');
 
 
 Route::middleware(['auth', 'active'])->group(function () {

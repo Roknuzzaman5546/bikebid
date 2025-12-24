@@ -55,7 +55,7 @@ class BidController extends Controller
                 'details' => $e->getMessage()
             ]);
 
-            return back()->withErrors($e->getMessage());
+            return back()->withErrors(['amount' => $e->getMessage()]);
         }
     }
 }

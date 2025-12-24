@@ -19,7 +19,8 @@ class Auction extends Model
         'buy_now_price',
         'start_time',
         'end_time',
-        'state'
+        'state',
+        'winner_id'
     ];
 
     protected $casts = [
