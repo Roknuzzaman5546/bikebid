@@ -21,9 +21,22 @@ class AuctionController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Auction::query()
-            ->whereIn('state', ['scheduled', 'live'])
-            ->orderBy('start_time');
+        $query = Auction::query()->where('state', '!=', 'draft');
+
+        if (!$request->state && !$request->search && !$request->ending_soon) {
+            $query->orderByRaw("FIELD(state, 'live', 'scheduled', 'ended', 'canceled') ASC")
+                ->orderBy('start_time', 'ASC');
+        } else {
+            $query->orderBy('start_time', 'desc');
+        }
+
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
+                    ->orWhere('description', 'like', '%' . $request->search . '%')
+                    ->orWhere('location', 'like', '%' . $request->search . '%');
+            });
+        }
 
         if ($request->state) {
             $query->where('state', $request->state);
@@ -49,6 +62,11 @@ class AuctionController extends Controller
             'bids.user:id,name',
             'seller:id,name',
         ]);
+
+        // Hide reserve price from public
+        if (Auth::id() !== $auction->seller_id) {
+            $auction->makeHidden('reserve_price');
+        }
 
         return Inertia::render('Auctions/Show', [
             'auction' => $auction,
@@ -76,6 +94,7 @@ class AuctionController extends Controller
             'description' => 'required|string',
             'condition' => 'required|string',
             'location' => 'required|string',
+            'image_url' => 'nullable|url',
             'start_time' => 'required|date|after:now',
             'end_time' => 'required|date|after:start_time',
             'starting_price' => 'required|numeric|min:1',

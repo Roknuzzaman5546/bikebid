@@ -2,12 +2,15 @@
 
 namespace App\Events;
 
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class AuctionEnded
+class AuctionEnded implements ShouldBroadcast
 {
-    use Dispatchable, SerializesModels;
+    use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $auctionId;
     public ?int $winnerId;
@@ -24,5 +27,17 @@ class AuctionEnded
         $this->winnerId = $winnerId;
         $this->finalPrice = $finalPrice;
         $this->sold = $sold;
+    }
+
+    public function broadcastOn(): array
+    {
+        return [
+            new Channel('auction.' . $this->auctionId),
+        ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'AuctionEnded';
     }
 }

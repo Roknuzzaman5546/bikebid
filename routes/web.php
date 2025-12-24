@@ -36,8 +36,12 @@ Route::get('/auctions/{auction}/updates', [AuctionController::class, 'updates'])
 
 Route::middleware(['auth', 'active'])->group(function () {
 
+    // Seller Dashboard
+    Route::get('/dashboard', [AuctionController::class, 'myAuctions'])->name('dashboard');
+
     // Auctions (Seller)
     Route::post('/auctions', [AuctionController::class, 'store'])->name('auctions.store');
+    Route::post('/auctions/{auction}/cancel', [AuctionController::class, 'cancel'])->name('auctions.cancel');
 
     // Bids
     Route::post('/auctions/{auction}/bid', [BidController::class, 'store'])
@@ -48,23 +52,26 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->name('buy.now');
 
     // Watchlist
-    Route::post('/watch/{auctionId}', [WatchlistController::class, 'toggle']);
+    Route::post('/watch/{auctionId}', [WatchlistController::class, 'toggle'])->name('watch.toggle');
 
     // Notifications
-    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+    // Checkout
+    Route::get('/auctions/{auction}/checkout', [\App\Http\Controllers\CheckoutController::class, 'show'])->name('checkout.show');
+    Route::post('/auctions/{auction}/checkout', [\App\Http\Controllers\CheckoutController::class, 'process'])->name('checkout.process');
 });
 
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/users', [UserAdminController::class, 'index'])->name('admin.users.index');
+    Route::post('/users/{user}/suspend', [UserAdminController::class, 'suspend'])->name('admin.users.suspend');
+    Route::post('/users/{user}/unsuspend', [UserAdminController::class, 'unsuspend'])->name('admin.users.unsuspend');
 
-    Route::get('/users', [UserAdminController::class, 'index']);
-    Route::post('/users/{user}/suspend', [UserAdminController::class, 'suspend']);
-    Route::post('/users/{user}/unsuspend', [UserAdminController::class, 'unsuspend']);
+    Route::get('/auctions', [AuctionAdminController::class, 'index'])->name('admin.auctions.index');
+    Route::post('/auctions/{auction}/cancel', [AuctionAdminController::class, 'cancel'])->name('admin.auctions.cancel');
 
-    Route::get('/auctions', [AuctionAdminController::class, 'index']);
-    Route::post('/auctions/{auction}/cancel', [AuctionAdminController::class, 'cancel']);
-
-    Route::get('/audit-logs', [AuditController::class, 'index']);
+    Route::get('/audit-logs', [AuditController::class, 'index'])->name('admin.audit.index');
 });
 
 

@@ -6,6 +6,8 @@ use App\Events\AuctionEnded;
 use App\Events\AuctionExtended;
 use App\Events\BidPlaced;
 use App\Models\Auction;
+use App\Notifications\OutbidNotification;
+use App\Notifications\AuctionWonNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -30,11 +32,10 @@ class AuctionService
     {
         $auction->update([
             'state' => 'canceled',
-            // If you have a cancel_reason column, uncomment:
-            // 'cancel_reason' => $reason
+            'cancel_reason' => $reason
         ]);
 
-        // Logic to refund bids if any, etc.
+        $this->audit('AUCTION_CANCELED', $auction->id, auth()->id(), $reason);
     }
 
     /**
@@ -46,21 +47,23 @@ class AuctionService
     public function placeBid(int $auctionId, int $userId, float $amount)
     {
         return DB::transaction(function () use ($auctionId, $userId, $amount) {
-
-            $auction = DB::table('auctions')
-                ->lockForUpdate()
-                ->where('id', $auctionId)
-                ->first();
-
-            if (!$auction || $auction->state !== 'live') {
-                throw new \Exception('Auction not live');
+            // Check User Status
+            $user = \App\Models\User::find($userId);
+            if (!$user || $user->status !== 'active') {
+                return ['error' => 'User is suspended or invalid'];
             }
 
+            // Lock Auction
+            $auction = Auction::lockForUpdate()->find($auctionId);
+
+            if (!$auction || $auction->state !== 'live') {
+                return ['error' => 'Auction not live'];
+            }
+
+            $now = now();
             $endTime = \Carbon\Carbon::parse($auction->end_time);
 
-
-
-            if (now()->gt($endTime)) {
+            if ($now->gt($endTime)) {
                 return ['error' => 'Auction already ended'];
             }
             if ($auction->seller_id == $userId) {
@@ -74,40 +77,63 @@ class AuctionService
                 $minBid = $auction->starting_price;
             }
 
-
             if ($amount < $minBid) {
                 return ['error' => "Minimum bid is {$minBid}"];
             }
 
-            // dd($amount, $minBid);
-            DB::table('bids')->insert([
+            // Idempotency Check (Basic) - If needed, usually via a unique constraint or separate table check
+            // assuming mostly handled by frontend preventing double clicks, ensuring robustness here:
+            // We could check if this user already bid this exact amount recently?
+            // For now, allow multiple same bids if increasing? No, price must increase.
+            // If amount == current_price, rejected by logic above.
+
+            $bidId = DB::table('bids')->insertGetId([
                 'auction_id' => $auctionId,
                 'user_id' => $userId,
                 'amount' => $amount,
                 'idempotency_key' => request('key'),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'created_at' => $now,
+                'updated_at' => $now,
             ]);
+
+            $bid = \App\Models\Bid::with('user:id,name')->find($bidId);
+
+            $updateData = [
+                'current_price' => $amount,
+                'updated_at' => $now,
+            ];
+
+            // Notify Previous Bidder
+            $previousBid = DB::table('bids')
+                ->where('auction_id', $auctionId)
+                ->where('user_id', '!=', $userId)
+                ->orderByDesc('amount')
+                ->first();
+
+            if ($previousBid) {
+                $prevUser = \App\Models\User::find($previousBid->user_id);
+                if ($prevUser) {
+                    $prevUser->notify(new OutbidNotification($auction, $amount));
+                }
+            }
+
+            // Anti-sniping (last 2 minutes)
+            // If endTime is within 120 seconds from now
+            if ($endTime->diffInSeconds($now) <= 120) {
+                $newEnd = $endTime->copy()->addMinutes(2);
+                $updateData['end_time'] = $newEnd;
+
+                // Fire extension event
+                event(new AuctionExtended($auctionId, $newEnd->toDateTimeString()));
+
+                $this->audit('AUCTION_EXTENDED', $auctionId, $userId, $newEnd->toDateTimeString());
+            }
 
             DB::table('auctions')
                 ->where('id', $auctionId)
-                ->update([
-                    'current_price' => $amount,
-                    'updated_at' => now(),
-                ]);
+                ->update($updateData);
 
-            // Anti-sniping (last 2 minutes)
-            if (now()->diffInSeconds($endTime) <= 120) {
-                $newEnd = now()->addMinutes(2);
-
-                DB::table('auctions')
-                    ->where('id', $auctionId)
-                    ->update(['end_time' => $newEnd]);
-
-                event(new AuctionExtended($auctionId, $newEnd->toDateTimeString()));
-            }
-
-            event(new BidPlaced($auctionId, $userId, $amount));
+            event(new BidPlaced($auctionId, $bid, $amount));
 
             $this->audit('BID_ACCEPTED', $auctionId, $userId, $amount);
 
@@ -197,6 +223,13 @@ class AuctionService
                 $price,
                 $sold
             ));
+
+            if ($sold) {
+                $winner = \App\Models\User::find($winnerId);
+                if ($winner) {
+                    $winner->notify(new AuctionWonNotification($auction));
+                }
+            }
 
             $this->audit('AUCTION_ENDED', $auction->id, $winnerId, $price);
         });

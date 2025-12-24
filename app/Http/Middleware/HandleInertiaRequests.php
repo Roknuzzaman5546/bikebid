@@ -32,7 +32,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user() ? array_merge($request->user()->toArray(), [
+                    'notifications_count' => $request->user()->unreadNotifications()->count(),
+                    'watchlists' => \Illuminate\Support\Facades\DB::table('watchlists')->where('user_id', $request->user()->id)->get(['auction_id']),
+                ]) : null,
             ],
         ];
     }

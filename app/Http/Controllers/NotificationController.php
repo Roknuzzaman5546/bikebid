@@ -8,23 +8,16 @@ class NotificationController extends Controller
 {
     public function index()
     {
-        $notifications = DB::table('notifications')
-            ->where('user_id', auth()->id())
-            ->orderByDesc('id')
-            ->get();
+        $notifications = auth()->user()->notifications()->latest()->get();
 
-        return response()->json($notifications);
+        return \Inertia\Inertia::render('Notifications/Index', [
+            'notifications' => $notifications
+        ]);
     }
 
-    public function markAsRead(int $id)
+    public function markAsRead($id)
     {
-        DB::table('notifications')
-            ->where('id', $id)
-            ->where('user_id', auth()->id())
-            ->update([
-                'read_at' => now()
-            ]);
-
-        return response()->json(['success' => true]);
+        auth()->user()->unreadNotifications->where('id', $id)->markAsRead();
+        return back();
     }
 }

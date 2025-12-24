@@ -2,48 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\AuctionEnded;
-use Illuminate\Http\Request;
 use App\Models\Auction;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use App\Services\AuctionService;
+use Illuminate\Http\Request;
+use App\Models\AuditLog;
+
 class BuyNowController extends Controller
 {
+    protected $auctionService;
+
+    public function __construct(AuctionService $auctionService)
+    {
+        $this->auctionService = $auctionService;
+    }
+
     public function buy(Auction $auction)
     {
         $user = auth()->user();
 
-        DB::transaction(function () use ($auction, $user) {
+        if ($user->status !== 'active') {
+            return back()->withErrors(['error' => 'Your account is suspended.']);
+        }
 
-            $auction = Auction::lockForUpdate()->find($auction->id);
+        try {
+            $result = $this->auctionService->buyNow($auction->id, $user->id);
 
-            if ($auction->state !== 'live') {
-                // If ended, only allow if user is already the winner (completing purchase)
-                if ($auction->state === 'ended' && $auction->winner_id === $user->id) {
-                    // Proceed (act as payment confirmation)
-                } else {
-                    throw new \Exception('NOT_LIVE');
-                }
+            if (isset($result['error'])) {
+                throw new \Exception($result['error']);
             }
 
-            if (!$auction->buy_now_price) {
-                throw new \Exception('NO_BUY_NOW');
-            }
+            return redirect()->route('auctions.show', $auction)->with('success', 'Auction won via Buy Now!');
 
-            $auction->state = 'ended';
-            $auction->winner_id = $user->id;
-            $auction->current_price = $auction->buy_now_price;
-            $auction->save();
+        } catch (\Exception $e) {
+            AuditLog::create([
+                'action' => 'BUY_NOW_REJECTED',
+                'user_id' => $user->id,
+                'auction_id' => $auction->id,
+                'details' => $e->getMessage()
+            ]);
 
-            event(new AuctionEnded(
-                $auction->id,
-                $user->id,
-                $auction->buy_now_price,
-                true
-            ));
-        });
-
-        return redirect()->route('auctions.show', $auction);
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 }
 

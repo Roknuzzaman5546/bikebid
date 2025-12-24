@@ -22,9 +22,7 @@ class WatchlistController extends Controller
                 ->where('auction_id', $auctionId)
                 ->delete();
 
-            return response()->json([
-                'status' => 'removed'
-            ]);
+            return back();
         }
 
         DB::table('watchlists')->insert([
@@ -33,9 +31,7 @@ class WatchlistController extends Controller
             'created_at' => now(),
         ]);
 
-        return response()->json([
-            'status' => 'added'
-        ]);
+        return back();
     }
 
     public function myWatchlist()

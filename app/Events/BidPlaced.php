@@ -2,21 +2,36 @@
 
 namespace App\Events;
 
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class BidPlaced
+class BidPlaced implements ShouldBroadcast
 {
-    use Dispatchable, SerializesModels;
+    use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public int $auctionId;
-    public int $userId;
+    public $bid;
     public float $amount;
 
-    public function __construct(int $auctionId, int $userId, float $amount)
+    public function __construct(int $auctionId, $bid, float $amount)
     {
         $this->auctionId = $auctionId;
-        $this->userId = $userId;
+        $this->bid = $bid;
         $this->amount = $amount;
+    }
+
+    public function broadcastOn(): array
+    {
+        return [
+            new Channel('auction.' . $this->auctionId),
+        ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'BidPlaced';
     }
 }
