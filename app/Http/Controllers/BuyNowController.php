@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\AuctionEnded;
 use Illuminate\Http\Request;
 use App\Models\Auction;
 use Illuminate\Support\Facades\DB;
-use App\Events\AuctionEnded;
 use Illuminate\Support\Facades\Log;
 class BuyNowController extends Controller
 {

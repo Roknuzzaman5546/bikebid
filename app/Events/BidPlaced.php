@@ -2,22 +2,21 @@
 
 namespace App\Events;
 
-use App\Models\Auction;
-use App\Models\User;
-use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 class BidPlaced
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
-    public $auction;
-    public $user;
+    public int $auctionId;
+    public int $userId;
+    public float $amount;
 
-    public function __construct(Auction $auction, User $user)
+    public function __construct(int $auctionId, int $userId, float $amount)
     {
-        $this->auction = $auction;
-        $this->user = $user;
+        $this->auctionId = $auctionId;
+        $this->userId = $userId;
+        $this->amount = $amount;
     }
 }

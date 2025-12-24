@@ -26,9 +26,9 @@ class UpdateAuctionState extends Command
      */
     public function handle()
     {
-        Auction::where('status', 'scheduled')
+        Auction::where('state', 'scheduled')
             ->where('start_time', '<=', now())
-            ->update(['status' => 'live']);
+            ->update(['state' => 'live']);
 
         $this->info('Auction states updated');
     }

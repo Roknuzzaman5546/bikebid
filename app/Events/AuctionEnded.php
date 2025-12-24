@@ -2,19 +2,27 @@
 
 namespace App\Events;
 
-use App\Models\Auction;
-use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 class AuctionEnded
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
-    public $auction;
+    public int $auctionId;
+    public ?int $winnerId;
+    public ?float $finalPrice;
+    public bool $sold;
 
-    public function __construct(Auction $auction)
-    {
-        $this->auction = $auction;
+    public function __construct(
+        int $auctionId,
+        ?int $winnerId,
+        ?float $finalPrice,
+        bool $sold
+    ) {
+        $this->auctionId = $auctionId;
+        $this->winnerId = $winnerId;
+        $this->finalPrice = $finalPrice;
+        $this->sold = $sold;
     }
 }

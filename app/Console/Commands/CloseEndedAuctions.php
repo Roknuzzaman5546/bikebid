@@ -13,7 +13,7 @@ class CloseEndedAuctions extends Command
 
     public function handle(AuctionService $service)
     {
-        $auctions = Auction::where('status', 'live')
+        $auctions = Auction::where('state', 'live')
             ->where('end_time', '<=', now())
             ->get();
 

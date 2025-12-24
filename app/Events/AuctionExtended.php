@@ -2,19 +2,19 @@
 
 namespace App\Events;
 
-use App\Models\Auction;
-use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 class AuctionExtended
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable, SerializesModels;
 
-    public $auction;
+    public int $auctionId;
+    public string $newEndTime;
 
-    public function __construct(Auction $auction)
+    public function __construct(int $auctionId, string $newEndTime)
     {
-        $this->auction = $auction;
+        $this->auctionId = $auctionId;
+        $this->newEndTime = $newEndTime;
     }
 }
