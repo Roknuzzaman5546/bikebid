@@ -29,13 +29,13 @@ use Inertia\Inertia;
 
 Route::get('/', [AuctionController::class, 'index'])->name('home');
 Route::get('/auctions', [AuctionController::class, 'index'])->name('auctions.index');
+Route::get('/auctions/create', [AuctionController::class, 'create'])->name('auctions.create');
 Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->name('auctions.show');
 
 
 Route::middleware(['auth', 'active'])->group(function () {
 
     // Auctions (Seller)
-    Route::get('/auctions/create', [AuctionController::class, 'create'])->name('auctions.create');
     Route::post('/auctions', [AuctionController::class, 'store'])->name('auctions.store');
 
     // Bids

@@ -3,12 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Auction;
+use App\Services\AuctionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class AuctionController extends Controller
 {
+    protected $auctionService;
+
+    public function __construct(AuctionService $auctionService)
+    {
+        $this->auctionService = $auctionService;
+    }
     /**
      * Browse auctions (Live + Upcoming)
      */
