@@ -14,7 +14,7 @@ export default function BidBox({ auction }) {
         });
     }
 
-    const minBid = (auction.current_price || auction.starting_price) + (auction.min_increment || 1);
+    const minBid = (auction.min_increment || 1);
 
     return (
         <form onSubmit={submit} className="space-y-4">

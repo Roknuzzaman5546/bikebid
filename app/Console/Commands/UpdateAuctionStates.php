@@ -36,12 +36,14 @@ class UpdateAuctionStates extends Command
     public function handle()
     {
         // 1. Scheduled -> Live
-        $startedCount = Auction::where('state', 'scheduled')
+        $scheduledAuctions = Auction::where('state', 'scheduled')
             ->where('start_time', '<=', now())
-            ->update(['state' => 'live']);
+            ->get();
 
-        if ($startedCount > 0) {
-            $this->info("Started {$startedCount} auctions.");
+        foreach ($scheduledAuctions as $auction) {
+            $auction->update(['state' => 'live']);
+            event(new \App\Events\AuctionStarted($auction));
+            $this->info("Started auction ID: {$auction->id}");
         }
 
         // 2. Live -> Ended

@@ -38,6 +38,12 @@ export default function Show() {
                     winner_id: e.winnerId,
                     current_price: e.finalPrice
                 }));
+            })
+            .listen('.AuctionStarted', (e) => {
+                setAuction(prev => ({
+                    ...prev,
+                    state: 'live'
+                }));
             });
 
         return () => {

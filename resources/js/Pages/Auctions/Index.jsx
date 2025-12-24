@@ -1,7 +1,36 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
 
-export default function Index({ auctions }) {
+export default function Index({ auctions: initialAuctions }) {
+    const [auctions, setAuctions] = useState(initialAuctions);
+
+    useEffect(() => {
+        const channel = window.Echo.channel('auctions');
+
+        channel
+            .listen('.AuctionStarted', (e) => {
+                setAuctions(prev => ({
+                    ...prev,
+                    data: prev.data.map(a => a.id === e.auction.id ? { ...a, state: 'live' } : a)
+                }));
+            })
+            .listen('.BidPlaced', (e) => {
+                setAuctions(prev => ({
+                    ...prev,
+                    data: prev.data.map(a => a.id === e.auctionId ? { ...a, current_price: e.amount } : a)
+                }));
+            })
+            .listen('.AuctionEnded', (e) => {
+                setAuctions(prev => ({
+                    ...prev,
+                    data: prev.data.map(a => a.id === e.auctionId ? { ...a, state: 'ended', current_price: e.finalPrice } : a)
+                }));
+            });
+
+        return () => window.Echo.leave('auctions');
+    }, []);
+
     return (
         <AuthenticatedLayout>
             <Head title="Live Auctions" />

@@ -2,34 +2,34 @@
 
 namespace App\Events;
 
+use App\Models\Auction;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class AuctionExtended implements ShouldBroadcastNow
+class AuctionStarted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public int $auctionId;
-    public string $newEndTime;
+    public $auction;
 
-    public function __construct(int $auctionId, string $newEndTime)
+    public function __construct(Auction $auction)
     {
-        $this->auctionId = $auctionId;
-        $this->newEndTime = $newEndTime;
+        $this->auction = $auction;
     }
 
     public function broadcastOn(): array
     {
         return [
-            new Channel('auction.' . $this->auctionId),
+            new Channel('auctions'),
+            new Channel('auction.' . $this->auction->id),
         ];
     }
 
     public function broadcastAs(): string
     {
-        return 'AuctionExtended';
+        return 'AuctionStarted';
     }
 }

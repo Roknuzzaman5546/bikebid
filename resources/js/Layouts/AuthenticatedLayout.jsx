@@ -3,13 +3,44 @@ import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
+    const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
+    const [globalNotification, setGlobalNotification] = useState(null);
+
+    useEffect(() => {
+        if (!user) return;
+
+        // Listen for status changes (e.g. auction starts)
+        window.Echo.channel('auctions')
+            .listen('.AuctionStarted', (e) => {
+                setGlobalNotification({
+                    title: 'Auction Live!',
+                    message: `${e.auction.title} is now open for bidding.`,
+                    url: route('auctions.show', e.auction.id)
+                });
+                setTimeout(() => setGlobalNotification(null), 5000);
+            });
+
+        // Listen for personal notifications
+        window.Echo.private(`App.Models.User.${user.id}`)
+            .notification((notification) => {
+                setGlobalNotification({
+                    title: notification.title || 'Notification',
+                    message: notification.message,
+                    url: notification.url
+                });
+                setTimeout(() => setGlobalNotification(null), 5000);
+            });
+
+        return () => {
+            window.Echo.leave('auctions');
+            window.Echo.leave(`App.Models.User.${user.id}`);
+        };
+    }, [user.id]);
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-indigo-500/30">
@@ -141,6 +172,28 @@ export default function AuthenticatedLayout({ header, children }) {
                     {children}
                 </div>
             </main>
+            {/* Global Real-time Notification Toast */}
+            {globalNotification && (
+                <div className="fixed bottom-8 right-8 z-[100] animate-in fade-in slide-in-from-bottom-5 duration-300">
+                    <div className="glass-card p-4 flex items-start gap-4 border-indigo-500/30 bg-indigo-500/10 shadow-2xl backdrop-blur-xl min-w-[320px]">
+                        <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center shrink-0">
+                            🔔
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-bold text-sm text-white">{globalNotification.title}</h4>
+                            <p className="text-xs text-slate-400 mt-1">{globalNotification.message}</p>
+                            {globalNotification.url && (
+                                <Link href={globalNotification.url} className="mt-2 inline-block text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300">
+                                    View Details →
+                                </Link>
+                            )}
+                        </div>
+                        <button onClick={() => setGlobalNotification(null)} className="text-slate-500 hover:text-white">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
