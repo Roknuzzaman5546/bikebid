@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained();
             $table->foreignId('auction_id')->constrained();
             $table->unique(['user_id', 'auction_id']);
+            $table->timestamps();
         });
     }
 
