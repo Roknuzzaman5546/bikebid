@@ -30,6 +30,7 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('auctions.index') : redirect()->route('login');
 })->name('home');
+
 Route::get('/auctions', [AuctionController::class, 'index'])->name('auctions.index');
 Route::get('/auctions/create', [AuctionController::class, 'create'])->name('auctions.create');
 Route::get('/auctions/{auction}', [AuctionController::class, 'show'])->name('auctions.show');

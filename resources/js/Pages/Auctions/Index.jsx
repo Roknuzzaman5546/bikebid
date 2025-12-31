@@ -27,7 +27,6 @@ export default function Index({ auctions: initialAuctions }) {
                     data: prev.data.map(a => a.id === e.auctionId ? { ...a, state: 'ended', current_price: e.finalPrice } : a)
                 }));
             });
-
         return () => window.Echo.leave('auctions');
     }, []);
 
